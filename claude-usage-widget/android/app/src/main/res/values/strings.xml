@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Claude Usage</string>
+    <string name="widget_label">Claude Usage</string>
+    <string name="widget_description">5-hour and 7-day Opus usage with reset countdown.</string>
+
+    <string name="config_title">Claude Usage</string>
+    <string name="config_subtitle">Tap log in and sign into your Claude account. The widget reads your usage page every 15 minutes. Cookies stay encrypted on this device.</string>
+
+    <string name="section_account">Account</string>
+    <string name="section_preview">Preview</string>
+    <string name="status_logged_in">Logged in to claude.ai</string>
+    <string name="status_logged_in_mock_active">Logged in · showing mock data</string>
+    <string name="status_using_mock">Using mock data</string>
+    <string name="status_not_logged_in">Not logged in</string>
+
+    <string name="action_log_in">Log in to Claude</string>
+    <string name="action_log_out">Log out</string>
+    <string name="action_refresh_now">Refresh now</string>
+    <string name="action_use_mock">Use mock data</string>
+    <string name="action_stop_mock">Stop using mock data</string>
+    <string name="action_done">Done</string>
+
+    <string name="login_title">Log in to Claude</string>
+    <string name="login_not_ready">Still loading. Try again once you\'re on a Claude page.</string>
+    <string name="action_paste_link">Paste link</string>
+    <string name="login_no_clipboard_url">No URL in clipboard. Copy the magic link from your email first.</string>
+
+    <string name="widget_state_unconfigured">Tap to log in</string>
+    <string name="widget_state_loading">Loading…</string>
+    <string name="widget_state_error_auth">Tap to re-auth</string>
+    <string name="widget_state_error_network">Network error · tap to retry</string>
+
+    <string name="ring_label_5h">5-hour</string>
+    <string name="ring_label_7d_opus">7-day Opus</string>
+    <string name="ring_label_7d">7-day</string>
+    <string name="placeholder_no_data">no data</string>
+    <string name="countdown_label_resets_in">Resets in</string>
+    <string name="countdown_scope_5h">5-hour window</string>
+    <string name="placeholder_no_opus">no Opus on plan</string>
+    <string name="placeholder_em_dash">—</string>
+</resources>

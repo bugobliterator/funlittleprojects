@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="claude_orange">#FFD97757</color>
+    <color name="claude_orange_soft">#FFF4A78A</color>
+    <color name="claude_orange_glow">#66D97757</color>
+
+    <color name="widget_bg_top">#451E140D</color>
+    <color name="widget_bg_bottom">#D91C1C1E</color>
+    <color name="widget_card">#0DFFFFFF</color>
+    <color name="widget_track">#1AFFFFFF</color>
+    <color name="widget_border">#0FFFFFFF</color>
+
+    <color name="text_primary">#FFF5F5F7</color>
+    <color name="text_secondary">#9EF5F5F7</color>
+    <color name="text_tertiary">#69F5F5F7</color>
+
+    <color name="status_ok">#FF4ADE80</color>
+    <color name="status_warn">#FFFBBF24</color>
+    <color name="status_error">#FFF87171</color>
+
+    <color name="config_bg">#FF0F0E0D</color>
+    <color name="config_field_bg">#1AFFFFFF</color>
+</resources>

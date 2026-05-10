@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Usage Widget — B2 (Opus focus)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --claude-orange: #d97757;
+    --claude-orange-soft: #f4a78a;
+    --claude-cream: #f5f0e6;
+    --bg-card: rgba(28, 28, 30, 0.62);
+    --text-primary: #f5f5f7;
+    --text-secondary: rgba(245, 245, 247, 0.62);
+    --track: rgba(255, 255, 255, 0.10);
+    --shadow: 0 14px 40px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: 'Google Sans Text', 'Roboto', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #f5f5f7;
+    min-height: 100vh;
+  }
+  header { text-align: center; padding: 48px 24px 8px; }
+  header h1 { margin: 0 0 6px; font-weight: 700; font-size: 26px; letter-spacing: -0.4px; }
+  header p { margin: 0; color: rgba(245, 245, 247, 0.6); font-size: 13px; }
+  header .meta {
+    display: inline-block; margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: rgba(217, 119, 87, 0.12); color: #ffb892;
+    padding: 4px 10px; border-radius: 6px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 24px 80px;
+    align-items: start;
+  }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+  /* Phone frame */
+  .phone {
+    position: relative;
+    width: 100%; max-width: 420px; margin: 0 auto;
+    aspect-ratio: 9 / 19.5;
+    border-radius: 44px;
+    background:
+      radial-gradient(120% 80% at 30% 0%, #5a3422 0%, transparent 60%),
+      radial-gradient(120% 80% at 80% 100%, #1c1c1e 0%, transparent 60%),
+      linear-gradient(160deg, #2b1c14 0%, #0e0d0c 100%);
+    box-shadow:
+      inset 0 0 0 2px #1a1a1c, inset 0 0 0 8px #2a2a2c,
+      0 30px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    padding: 56px 18px 32px;
+    display: flex; flex-direction: column;
+  }
+  .phone::before {
+    content: ""; position: absolute; top: 14px; left: 50%;
+    transform: translateX(-50%);
+    width: 96px; height: 28px; background: #000; border-radius: 14px;
+  }
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    color: #f5f5f7; font-size: 12px; padding: 0 14px 14px;
+    font-weight: 500; opacity: 0.85;
+  }
+  .home-label {
+    text-align: center; color: rgba(245, 245, 247, 0.7);
+    font-size: 12px; margin-bottom: 12px; font-weight: 500;
+  }
+
+  /* Widget — 4x2 cell on home screen */
+  .widget {
+    width: 100%;
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    color: var(--text-primary);
+    background:
+      linear-gradient(135deg, rgba(217, 119, 87, 0.18) 0%, rgba(28, 28, 30, 0.85) 60%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px);
+    overflow: hidden;
+  }
+  .widget-pad { padding: 18px 18px 16px; }
+
+  .head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .head .title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+  .head .meta { font-size: 11px; opacity: 0.6; font-weight: 500; }
+  .logo {
+    width: 18px; height: 18px; border-radius: 5px;
+    background: var(--claude-orange);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 11px;
+  }
+
+  /* Two rings + countdown card layout */
+  .body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.05fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .gauge {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; padding: 4px 0;
+  }
+  .ring {
+    --p: 50;
+    --size: 84px;
+    --stroke: 9px;
+    width: var(--size); height: var(--size);
+    border-radius: 50%;
+    background:
+      conic-gradient(var(--claude-orange) calc(var(--p) * 1%), rgba(255,255,255,0.10) 0);
+    display: grid; place-items: center;
+    position: relative;
+    filter: drop-shadow(0 2px 10px rgba(217, 119, 87, 0.35));
+  }
+  .ring::before {
+    content: "";
+    position: absolute; inset: var(--stroke);
+    border-radius: 50%;
+    background: rgba(20, 20, 22, 0.92);
+  }
+  .ring .pct {
+    position: relative;
+    font-weight: 700; font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+  .ring .pct .sym { font-size: 11px; opacity: 0.55; font-weight: 500; }
+  .ring.empty {
+    background: conic-gradient(rgba(255,255,255,0.10) 100%, rgba(255,255,255,0.10) 0);
+    filter: none;
+  }
+  .ring.empty .pct { opacity: 0.4; font-size: 14px; }
+  .gauge .label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    opacity: 0.85;
+  }
+  .gauge .sub {
+    font-size: 10px; opacity: 0.55;
+    text-align: center; line-height: 1.3;
+  }
+
+  /* Countdown card (third slot) */
+  .countdown {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 12px 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    gap: 4px;
+  }
+  .countdown .lbl {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px;
+    opacity: 0.55;
+  }
+  .countdown .val {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.8px;
+    color: #ffb892;
+    font-feature-settings: "tnum";
+  }
+  .countdown .scope { font-size: 10px; opacity: 0.55; }
+  .countdown .reset-bar {
+    margin-top: 4px;
+    width: 100%; height: 3px;
+    background: var(--track); border-radius: 999px; overflow: hidden;
+  }
+  .countdown .reset-bar > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--claude-orange), var(--claude-orange-soft));
+    border-radius: 999px;
+  }
+
+  /* Annotations panel (right side of layout) */
+  .spec {
+    background: rgba(28, 28, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 24px 24px 28px;
+  }
+  .spec h2 {
+    margin: 0 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.2px;
+  }
+  .spec h2 + p { margin: 0 0 18px; color: rgba(245, 245, 247, 0.6); font-size: 13px; }
+  .spec h3 {
+    margin: 22px 0 10px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: rgba(245, 245, 247, 0.55);
+  }
+  .spec table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .spec td { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+  .spec td:first-child { padding-right: 14px; color: rgba(245, 245, 247, 0.7); width: 40%; }
+  .spec td code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px; border-radius: 4px;
+    font-size: 11px; color: #ffb892;
+  }
+  .spec ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.65; color: rgba(245, 245, 247, 0.85); }
+  .spec ul li { margin-bottom: 4px; }
+  .spec .source {
+    background: rgba(217, 119, 87, 0.08);
+    border: 1px solid rgba(217, 119, 87, 0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #ffb892;
+    margin-top: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--claude-orange);
+    box-shadow: 0 0 8px rgba(217, 119, 87, 0.6);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  footer {
+    text-align: center; color: rgba(245, 245, 247, 0.4);
+    font-size: 12px; padding: 0 24px 48px;
+  }
+  footer code {
+    background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Claude Usage Widget</h1>
+  <p>Option B2 · Two rings + countdown · Opus-focused</p>
+  <div class="meta">4×2 home-screen widget · Material You · Android 12+</div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: phone preview -->
+  <div>
+    <div class="phone">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>● ▌ ▍ 100%</span>
+      </div>
+      <div class="home-label">Home screen · 4×2</div>
+
+      <div class="widget">
+        <div class="widget-pad">
+          <div class="head">
+            <div class="title"><span class="logo">C</span> Claude Usage</div>
+            <div class="meta">Opus · 14:32</div>
+          </div>
+          <div class="body">
+
+            <!-- Ring 1: 5-hour overall -->
+            <div class="gauge">
+              <div class="ring" style="--p:24"><span class="pct">24<span class="sym">%</span></span></div>
+              <div class="label">5-hour</div>
+              <div class="sub">all models<br/>resets 18:10</div>
+            </div>
+
+            <!-- Ring 2: 7-day Opus -->
+            <div class="gauge">
+              <div class="ring" style="--p:38"><span class="pct">38<span class="sym">%</span></span></div>
+              <div class="label">7-day Opus</div>
+              <div class="sub">resets<br/>Tue 12 May</div>
+            </div>
+
+            <!-- Countdown card -->
+            <div class="countdown">
+              <div class="lbl">Resets in</div>
+              <div class="val">3h 38m</div>
+              <div class="scope">5-hour window</div>
+              <div class="reset-bar"><div style="width:24%"></div></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: data spec -->
+  <div class="spec">
+    <h2>Data &amp; field map</h2>
+    <p>Every visible value is sourced from one undocumented endpoint on the consumer claude.ai web app.</p>
+
+    <h3>Endpoint</h3>
+    <div class="source">GET https://claude.ai/api/organizations/{orgId}/usage</div>
+    <p style="margin: 10px 0 0; font-size: 12px; color: rgba(245,245,247,0.6);">
+      Auth: <code style="font-family:'JetBrains Mono',monospace;font-size:11px;">sessionKey</code> cookie. Org id from <code style="font-family:'JetBrains Mono',monospace;font-size:11px;">lastActiveOrg</code>. Stored in EncryptedSharedPreferences on device.
+    </p>
+
+    <h3>Field map</h3>
+    <table>
+      <tr>
+        <td><span class="legend-dot"></span>Ring 1 — "5-hour"</td>
+        <td><code>five_hour.utilization</code></td>
+      </tr>
+      <tr>
+        <td>Ring 1 reset time</td>
+        <td><code>five_hour.resets_at</code></td>
+      </tr>
+      <tr>
+        <td><span class="legend-dot"></span>Ring 2 — "7-day Opus"</td>
+        <td><code>seven_day_opus.utilization</code></td>
+      </tr>
+      <tr>
+        <td>Ring 2 reset time</td>
+        <td><code>seven_day_opus.resets_at</code></td>
+      </tr>
+      <tr>
+        <td>Countdown value</td>
+        <td>Computed from <code>five_hour.resets_at</code> − now</td>
+      </tr>
+      <tr>
+        <td>Countdown progress bar</td>
+        <td>Computed from <code>five_hour.utilization</code></td>
+      </tr>
+    </table>
+
+    <h3>Empty / null states</h3>
+    <ul>
+      <li>If <code>seven_day_opus</code> is <code>null</code> (free tier or no Opus quota), Ring 2 renders muted with an em-dash and label "no Opus on plan".</li>
+      <li>If the network call fails, last-known values render with a small ⚠ in the header and the countdown freezes.</li>
+      <li>If the cookie is invalid (HTTP 401/403), widget shows a "Tap to re-auth" CTA instead of the rings.</li>
+    </ul>
+
+    <h3>Refresh</h3>
+    <ul>
+      <li>WorkManager periodic job every 15 min (Android's minimum interval).</li>
+      <li>Tap-to-refresh on the widget body.</li>
+      <li>Forced refresh when phone screen turns on (ACTION_USER_PRESENT).</li>
+    </ul>
+
+    <h3>Out of scope (for now)</h3>
+    <ul>
+      <li>Active sessions / sessions awaiting input — not exposed on this endpoint, no documented public endpoint found.</li>
+      <li>Daily totals — API only exposes 5-hour rolling and 7-day windows.</li>
+      <li>Per-conversation drill-down.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Mockup at <code>claude-usage-widget/mockups/index.html</code>. Implementation target: native Android <code>AppWidgetProvider</code> in Kotlin.
+</footer>
+
+</body>
+</html>

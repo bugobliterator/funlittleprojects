@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.ClaudeUsage" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/claude_orange</item>
+        <item name="colorOnPrimary">#FF1A0F09</item>
+        <item name="android:windowBackground">@color/config_bg</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/config_bg</item>
+        <item name="android:navigationBarColor">@color/config_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+    </style>
+</resources>

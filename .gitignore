@@ -1,0 +1,22 @@
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Per-project transient state
+.claude/scheduled_tasks.lock
+.claude/cache/
+.claude/data/
+
+# Android build output (claude-usage-widget)
+**/build/
+**/.gradle/
+**/local.properties
+**/.cxx/
+**/.kotlin/
+
+# Node / Python (in case any subproject adds them)
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.venv/
