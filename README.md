@@ -39,4 +39,8 @@ tokens, PEM private-key headers, and generic credential assignments
 for d in claude-skills/skills/*/; do
   ln -s "$PWD/$d" ~/.claude/skills/"$(basename "$d")"
 done
+mkdir -p ~/.claude/agents
+for f in claude-skills/agents/*.md; do
+  ln -s "$PWD/$f" ~/.claude/agents/"$(basename "$f")"
+done
 ```
