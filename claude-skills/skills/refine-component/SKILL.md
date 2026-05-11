@@ -25,13 +25,14 @@ You (main Claude) run this loop directly. Do NOT spawn another orchestrator agen
 - Optional: free-text goal (everything that isn't `--url=...`). Default to "general polish".
 - Optional: `--url=/some/route`. Capture for later.
 - Verify the file exists. If not, abort and suggest `glob '**/*.svelte'` to find candidates.
+- Capture the current HEAD as `$START_SHA` (run `git rev-parse HEAD`). You'll use this in Steps 6(a-bis) and 7 to diff against.
 
 ### Step 2 — Pick a browser MCP (no fallback to source-only)
 
-Check which MCP is available in this session by inspecting the tools surfaced in context:
+Inspect the list of MCP tools surfaced to you in this session's system messages / tool catalog. Look for tool names matching either pattern below:
 
-1. `chrome-devtools-mcp` available → use it.
-2. Else `playwright` MCP available → use it.
+1. Any tool name beginning with `mcp__plugin_chrome-devtools-mcp_chrome-devtools__` → chrome-devtools-mcp is available, use it.
+2. Else any tool name beginning with `mcp__plugin_playwright_playwright__` → playwright is available, use it.
 3. Else → halt with: "No browser MCP available. Install or enable chrome-devtools-mcp or playwright and re-run."
 
 Remember the chosen MCP for the rest of the loop.
@@ -52,11 +53,21 @@ If none returns 200, halt with: "No dev server detected on ports 5173/3000/4173/
 
 If `--url=` was supplied, use it. Otherwise ask the user once: "Which route renders this component? (e.g. `/`, `/login`, or 'skip' to abort)". If they say 'skip', halt.
 
+### Step 4b — Verify the route resolves
+
+After Steps 3 and 4 you have `<base_url>` and `<route>`. Probe the full URL:
+
+```bash
+curl -s -m 2 -o /dev/null -w "%{http_code}" "<base_url><route>"
+```
+
+If the status is not 200, surface to the user: "Route `<route>` returned HTTP `<status>` on `<base_url>`. Continue anyway, or abort and pick a different route?" Wait for confirmation before continuing.
+
 ### Step 5 — Capture the baseline screenshot
 
 Filename: `/tmp/refine-<basename>-baseline.png` where `<basename>` is the component file's basename without extension.
 
-- chrome-devtools-mcp: `new_page` → `navigate_page <url>` → `take_screenshot path=<filename>`. (The baseline is for the editor only; the designer doesn't see it, so we don't need an a11y tree here.)
+- chrome-devtools-mcp: `new_page` → `navigate_page <url>` → `take_screenshot path=<filename>`. (The baseline is for the editor only; the designer doesn't see it, so we don't need an a11y tree here. We capture a11y trees only in Step 6(b), because they are only used by the designer, which reviews post-edit screenshots.)
 - playwright: `browser_navigate <url>` → `browser_take_screenshot path=<filename>`. No a11y tree available.
 
 If capture fails, halt: "Screenshot failed on baseline. <error>. Aborting."
@@ -83,29 +94,31 @@ Output a short summary of changes, then hand off.
 
 `<LATEST_SCREENSHOT_PATH>` is the baseline for round 1, otherwise the previous round's post-edit screenshot.
 
+**(a-bis) Detect editor no-op.** Run `git diff --name-only $START_SHA HEAD` to see what changed since the orchestrator started. If the editor's summary indicates no changes were made AND `git diff` shows no new modifications since the previous round, jump out of the loop and proceed to Step 7 with the current verdict (or NEEDS_WORK if none yet). Looping again against an unchanged screenshot wastes tokens and produces a redundant critique.
+
 **(b) Capture the post-edit screenshot.** Path: `/tmp/refine-<basename>-post-r<n>.png`. A11y tree (if chrome-devtools): `/tmp/refine-<basename>-a11y-r<n>.json`. Halt on capture failure.
 
 **(c) Spawn the designer.** Use the Agent tool with `subagent_type=ui-design-expert`. Pass:
 
 ```
-Review the rendered component. Goal: <GOAL>. Round <n> of 3.
+Review the rendered component. Goal: <GOAL>.
 
 Screenshot: <POST_EDIT_SCREENSHOT_PATH>.
 <If a11y tree exists:>
 Accessibility tree: <A11Y_PATH>.
 </If>
 
-Critique on the standard axes. End with a single VERDICT block.
+Critique on the standard axes. End with a single VERDICT block (plain text, not inside a code fence).
 ```
 
-**(d) Parse the verdict.** Search the last 20 lines of the designer's reply for `^VERDICT:\s*(APPROVED|NEEDS_WORK)`. If APPROVED, break. If NEEDS_WORK, capture the items as the critique for round `n+1`. If no verdict block found, treat as NEEDS_WORK with the full reply as the critique.
+**(d) Parse the verdict.** Look at the last 20 lines of the designer's reply. Iterate line-by-line. A line counts as a verdict if it matches the pattern `VERDICT:` followed by optional whitespace and then `APPROVED` or `NEEDS_WORK` at the start of the line's content (ignore any leading whitespace, ignore the regex `^` anchor — treat each line independently). If APPROVED, break. If NEEDS_WORK, capture every numbered item that follows (until end of output) as the critique for round `n+1`. If no verdict line is found anywhere in the last 20 lines, treat the entire reply as the critique and continue as NEEDS_WORK.
 
 ### Step 7 — Surface the result
 
 Print to the user:
 - Rounds run.
 - Final verdict (APPROVED or NEEDS_WORK).
-- Files modified (run `git diff --name-only` since the start).
+- Files modified (`git diff --name-only $START_SHA HEAD`).
 - If NEEDS_WORK at exit: the final designer's numbered items so the user can decide whether to continue manually.
 - Paths of all screenshots so the user can review the iteration history.
 
@@ -120,4 +133,5 @@ Print to the user:
 | Screenshot fails any round | Halt with round number + error. |
 | Verdict block missing | Treat as NEEDS_WORK; continue. |
 | Editor no-op | Continue to designer; if APPROVED, ship; else continue. |
+| Subagent times out | Halt; surface which subagent and round number to the user. Default Agent-tool timeout applies. |
 | Max rounds, no APPROVED | Surface critique; do not claim success. |
