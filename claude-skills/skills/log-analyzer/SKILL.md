@@ -33,7 +33,7 @@ If the user asks something the JSON does not contain the data for, say so. Sugge
 
 ### 1. Identify the active ticket folder (if any)
 
-If the working directory is `/Users/sidbh/Documents/Customer Support/Customer Support` (or the user is talking about a `CS-YYYY-NNN-...` ticket), the JSON output should land in `<ticket>/logs/`. Look for the relevant ticket folder — it usually has the file already copied in `<ticket>/logs/`.
+If the working directory is `~/Documents/Customer Support/Customer Support` (or the user is talking about a `CS-YYYY-NNN-...` ticket), the JSON output should land in `<ticket>/logs/`. Look for the relevant ticket folder — it usually has the file already copied in `<ticket>/logs/`.
 
 If no ticket context is identifiable, write the JSON next to the input file (same directory, same basename, `.json` extension).
 

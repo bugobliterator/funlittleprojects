@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Block commits that include personal info / credentials.
+# No bypass. Fix the offending line and re-stage.
+exec "$(git rev-parse --show-toplevel)/scripts/scan-personal-info.py" --git-staged

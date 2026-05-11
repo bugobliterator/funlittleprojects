@@ -1,1 +1,0 @@
-Create a markdown file containing the current task plan. If a filename is provided as an argument, use that name (add .md extension if missing). If no filename is provided, use a descriptive name based on the current task. Save the file in the current working directory.

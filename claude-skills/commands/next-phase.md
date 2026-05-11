@@ -1,1 +1,0 @@
-Continue with the next phase of the current task. Ask for confirmation before starting the next phase.
