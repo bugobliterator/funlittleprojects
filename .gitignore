@@ -7,6 +7,8 @@
 .claude/scheduled_tasks.lock
 .claude/cache/
 .claude/data/
+.playwright-mcp/
+.codex/
 
 # Android build output (claude-usage-widget)
 **/build/

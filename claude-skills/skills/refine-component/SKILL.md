@@ -65,10 +65,17 @@ If the status is not 200, surface to the user: "Route `<route>` returned HTTP `<
 
 ### Step 5 — Capture the baseline screenshot
 
-Filename: `/tmp/refine-<basename>-baseline.png` where `<basename>` is the component file's basename without extension.
+**Pick the screenshot directory based on the chosen MCP** — both browser MCPs sandbox writes:
 
-- chrome-devtools-mcp: `new_page` → `navigate_page <url>` → `take_screenshot path=<filename>`. (The baseline is for the editor only; the designer doesn't see it, so we don't need an a11y tree here. We capture a11y trees only in Step 6(b), because they are only used by the designer, which reviews post-edit screenshots.)
-- playwright: `browser_navigate <url>` → `browser_take_screenshot path=<filename>`. No a11y tree available.
+- chrome-devtools-mcp: write under `$TMPDIR` (the macOS per-user temp, typically `/var/folders/.../T/`). Example: `$TMPDIR/refine-<basename>-baseline.png`. The literal path `/tmp/...` is rejected because `/tmp` is symlinked outside the allowed roots.
+- playwright: write under `$CLAUDE_PROJECT_DIR/.playwright-mcp/`. Example: `$CLAUDE_PROJECT_DIR/.playwright-mcp/refine-<basename>-baseline.png`. Add `.playwright-mcp/` to `.gitignore` if it isn't already.
+
+`<basename>` is the component file's basename without extension. Resolve `$TMPDIR` and `$CLAUDE_PROJECT_DIR` from the environment before passing the path to the MCP — the MCPs do not expand env vars themselves.
+
+Capture commands:
+
+- chrome-devtools-mcp: `new_page url=<base_url><route>` → `take_screenshot filePath=<absolute path>`. (Baseline is for the editor only; the designer doesn't see it, so no a11y tree here. A11y trees are captured only in Step 6(b) for the designer.)
+- playwright: `browser_navigate url=<base_url><route>` → `browser_take_screenshot filename=<absolute path>`. No a11y tree available.
 
 If capture fails, halt: "Screenshot failed on baseline. <error>. Aborting."
 
@@ -96,7 +103,7 @@ Output a short summary of changes, then hand off.
 
 **(a-bis) Detect editor no-op.** Run `git diff --name-only $START_SHA HEAD` to see what changed since the orchestrator started. If the editor's summary indicates no changes were made AND `git diff` shows no new modifications since the previous round, jump out of the loop and proceed to Step 7 with the current verdict (or NEEDS_WORK if none yet). Looping again against an unchanged screenshot wastes tokens and produces a redundant critique.
 
-**(b) Capture the post-edit screenshot.** Path: `/tmp/refine-<basename>-post-r<n>.png`. A11y tree (if chrome-devtools): `/tmp/refine-<basename>-a11y-r<n>.json`. Halt on capture failure.
+**(b) Capture the post-edit screenshot.** Use the same MCP-specific directory you picked in Step 5 (`$TMPDIR/...` for chrome-devtools, `$CLAUDE_PROJECT_DIR/.playwright-mcp/...` for playwright). Filename: `refine-<basename>-post-r<n>.png`. A11y tree (chrome-devtools only, via `take_snapshot filePath=...`): `refine-<basename>-a11y-r<n>.txt` in the same directory. Halt on capture failure.
 
 **(c) Spawn the designer.** Use the Agent tool with `subagent_type=ui-design-expert`. Pass:
 
