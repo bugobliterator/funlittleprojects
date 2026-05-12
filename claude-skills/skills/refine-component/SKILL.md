@@ -37,6 +37,13 @@ Inspect the list of MCP tools surfaced to you in this session's system messages 
 
 Remember the chosen MCP for the rest of the loop.
 
+**Required chrome-devtools-mcp launch args.** The plugin must be configured with `--headless --isolated --viewport 1280x720`. Patch them into the plugin manifest at `~/.claude/plugins/cache/claude-plugins-official/chrome-devtools-mcp/<version>/.claude-plugin/plugin.json` under `mcpServers["chrome-devtools"].args`. Then fully quit and relaunch Claude Code — `/reload-plugins` and `/mcp` reconnect do not re-read these args.
+
+Why each flag matters:
+- `--headless` keeps the eval from popping a visible Chrome window over the user's workspace.
+- `--isolated` gives every session a fresh temp profile under `$TMPDIR`, so a prior crashed Chrome can't leave a `SingletonLock` that breaks `new_page`. Without this you will hit the *"browser is already running for ~/.cache/chrome-devtools-mcp/chrome-profile"* failure.
+- `--viewport 1280x720` pins the rendered viewport so screenshots are stable across rounds and across the editor/designer pair — without it Chrome picks a default size that may differ from the orchestrator's expectations.
+
 ### Step 3 — Find the dev server
 
 Probe these ports for an HTTP 200, 1-second timeout each, first wins:
