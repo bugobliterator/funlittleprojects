@@ -24,7 +24,7 @@ You (main Claude) run this loop directly. Do NOT spawn another orchestrator agen
 ### Step 1 — Parse and validate args
 
 - Required: first positional arg.
-- **Refine mode** — first arg ends in `.svg` AND the file exists. Output path = same path (in place).
+- **Refine mode** — first arg ends in `.svg` AND the file exists. Output path = same path (in place). **If `--out=<other-path>` is also provided**, first copy the source file to that path (`cp <source> <out>`) and treat `<out>` as the working output path for the rest of the loop. The original file is preserved untouched.
 - **Create with reference mode** — first arg is free-text AND `--ref=<...>` is present. Output = `--out=<path>` if given, else `./<slug>.svg` in cwd. Slug = lowercased prompt with non-alphanumerics collapsed to `-` (e.g., "GitHub Octocat" → `github-octocat`).
 - **Create from prompt mode** — first arg is free-text, no `--ref=`. Same output rules. Reference will be discovered in Step 3.
 
@@ -43,16 +43,16 @@ Remember which tool you found for the rest of the loop.
 ### Step 3 — Reference discovery (create modes only; skip in refine mode)
 
 If `--ref=<...>` was supplied:
-- URL → use `WebFetch` to download to `$TMPDIR/refine-svg-<slug>-ref.<ext>` (extension inferred from URL path or Content-Type).
+- URL → download via Bash: `curl -L --fail -o $TMPDIR/refine-svg-<slug>-ref.<ext> <URL>` where `<ext>` is inferred from the URL path's extension or the `Content-Type` response header. `WebFetch` does NOT work for binary image files.
 - Local path → use directly. Verify the file exists; if not, halt with the path and the message "—ref path doesn't exist".
 
 If `--ref=` was NOT supplied:
 1. Run `WebSearch` for `<prompt> SVG icon`. Capture the top 5 results.
 2. Run `WebSearch` for `<prompt> logo svg`. Capture the top 5.
 3. Dedupe by host. Rank by host authority: official project repos > brand-resources pages > simpleicons.org / heroicons.com / lucide.dev > general image hosts.
-4. Pick the top-ranked candidate. `WebFetch` its content. Save to `$TMPDIR/refine-svg-<slug>-ref.<ext>` (extension matching the actual content type).
+4. Pick the top-ranked candidate. **If the URL points directly to an image file** (path ends in `.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`, `.ico`, or `.gif`), download it via Bash: `curl -L --fail -o $TMPDIR/refine-svg-<slug>-ref.<ext> <URL>` where `<ext>` matches the URL's file extension. **Otherwise** (HTML page), use `WebFetch` to read the page's text and extract a referenced image URL from it (look for `<img>` tags, OpenGraph `og:image` meta tags, or direct image links in the prose), then download that extracted URL via curl as above. `WebFetch` cannot decode remote image bytes, so direct image-URL fetching MUST go through curl.
 5. Surface to the user: `"Found candidate reference: <url>. Use it / try another / paste your own / skip?"`. Wait for reply.
-6. If user says "try another", advance to the next ranked candidate and repeat surface-to-user.
+6. If user says "try another", advance to the next ranked candidate and repeat surface-to-user. **If no more candidates remain, inform the user ("No more candidates from the search results.") and offer the same choices as if they had said 'skip': paste your own URL/path, or proceed text-only.**
 7. If user says "paste your own", prompt them for a URL or path; treat their reply as if it were `--ref=`.
 8. If user says "skip", or if no candidates were findable, set `<reference path>` to "(none)" and proceed text-only. The expert's `Distinctive details` section then reflects iconographic conventions instead of reference fidelity.
 
@@ -64,13 +64,19 @@ Run `git rev-parse HEAD`. If the command fails (not in a git repo), skip silentl
 
 For `n` in 1..5:
 
+Initialize `need_ref_count = 0` at the start of each round (round-local state — do not carry it across rounds).
+
 **(a) Spawn the editor.** Use the Agent tool with `subagent_type=svg-editor`. Pass a self-contained prompt:
 
 ```
-Edit/create the SVG at <ABSOLUTE_OUTPUT_PATH>. Goal: <PROMPT>. Round <n> of 5.
+Output path: <ABSOLUTE_OUTPUT_PATH>
+Goal: <PROMPT>
+Round <n> of 5.
+
+Edit or create the SVG at the output path above.
 
 <If reference exists:>
-Reference: <ABSOLUTE_REF_PATH>.
+Reference path: <ABSOLUTE_REF_PATH>.
 </If>
 
 <If n >= 2:>
@@ -104,9 +110,9 @@ convert -background <BG> -resize 256x256 <output_path> $TMPDIR/refine-svg-<slug>
 ```
 Compare the rendered SVG to the reference. Goal: <PROMPT>. Round <n> of 5.
 
-Render: $TMPDIR/refine-svg-<slug>-r<n>.png.
+Render path: $TMPDIR/refine-svg-<slug>-r<n>.png.
 <If reference exists:>
-Reference: <ABSOLUTE_REF_PATH>.
+Reference path: <ABSOLUTE_REF_PATH>.
 </If>
 <If prior feature breakdown exists:>
 Prior feature breakdown:
@@ -120,7 +126,7 @@ Produce an updated feature breakdown and a single verdict block.
 
 - If `APPROVED`: break the loop.
 - If `NEEDS_WORK`: capture every numbered item that follows (until end of output or next blank double-line) as the critique for round `n+1`.
-- If `NEED_REFERENCE`: extract the line starting `Question to ask the user:` (after stripping that prefix). Print the question to the user verbatim. Wait for their reply. Re-spawn the editor for the SAME round, appending `\n\nDesigner's clarifying question: <Q>. User's answer: <A>.` to the editor's prompt. Re-render. Re-spawn the designer. The round counter does NOT advance during a NEED_REFERENCE round-trip. Cap at 2 NEED_REFERENCE retries per round; on the third in the same round, treat it as `NEEDS_WORK` with the full reply as the critique and advance.
+- If `NEED_REFERENCE`: look for a line in the reply starting with `Question to ask the user:`. **If no such line exists, fall back to treating the verdict as `NEEDS_WORK` with the full reply as the critique** (per the failure-modes table) — do NOT prompt the user. **If the line exists**, extract everything after the prefix and print it to the user verbatim. Wait for their reply. Increment a per-round counter `need_ref_count` (initialized to 0 at the start of each round). If `need_ref_count > 2`, treat this NEED_REFERENCE as `NEEDS_WORK` with the full reply as the critique and advance the round. Otherwise re-spawn the editor for the SAME round, appending `\n\nDesigner's clarifying question: <Q>. User's answer: <A>.` to the editor's prompt. Re-render. Re-spawn the designer. The round counter `n` does NOT advance.
 - If no verdict block is found anywhere in the last 30 lines, treat the entire reply as the critique and continue as `NEEDS_WORK`.
 
 ### Step 6 — Surface the result
