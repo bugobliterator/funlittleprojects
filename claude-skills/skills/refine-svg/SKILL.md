@@ -119,7 +119,10 @@ Prior feature breakdown:
 <PASTE>
 </If>
 
-Produce an updated feature breakdown and a single verdict block.
+Editor's report this round:
+<PASTE THE EDITOR'S FULL THREE-LINE REPORT VERBATIM — "References Read this round:", "Reference vs breakdown weight:", "Changes:">
+
+Produce an updated feature breakdown and a single verdict block. Remember: judge against iconographic abstraction of the reference, not photographic fidelity to it.
 ```
 
 **(d) Parse the verdict.** Iterate the last 30 lines of the designer's reply line-by-line, looking for `VERDICT:` followed by `APPROVED`, `NEEDS_WORK`, or `NEED_REFERENCE` (uppercase, ignore leading whitespace).
