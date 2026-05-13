@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A1A14"/>
+      <stop offset="100%" stop-color="#0F0B0A"/>
+    </linearGradient>
+    <radialGradient id="topGlow" cx="78%" cy="18%" r="65%">
+      <stop offset="0%" stop-color="#D97757" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#D97757" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#D97757" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="outerArc" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFB892"/>
+      <stop offset="100%" stop-color="#D97757"/>
+    </linearGradient>
+    <linearGradient id="innerArc" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFCFA8"/>
+      <stop offset="100%" stop-color="#E8855E"/>
+    </linearGradient>
+    <filter id="outerGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#topGlow)"/>
+
+  <!-- outer track + arc (≈73% of circle, swept clockwise from 12 o'clock) -->
+  <g transform="translate(512 512)">
+    <!-- track -->
+    <circle r="340" fill="none" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="78"/>
+    <!-- soft glow under the arc -->
+    <path
+      d="M 0 -340
+         A 340 340 0 1 1 -278.4 195.9"
+      fill="none" stroke="url(#outerArc)" stroke-width="78" stroke-linecap="round"
+      opacity="0.55" filter="url(#outerGlow)"/>
+    <!-- sharp arc on top -->
+    <path
+      d="M 0 -340
+         A 340 340 0 1 1 -278.4 195.9"
+      fill="none" stroke="url(#outerArc)" stroke-width="78" stroke-linecap="round"/>
+  </g>
+
+  <!-- inner track + arc (≈42% of circle) -->
+  <g transform="translate(512 512)">
+    <circle r="200" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="60"/>
+    <path
+      d="M 0 -200
+         A 200 200 0 0 1 161.8 117.6"
+      fill="none" stroke="url(#innerArc)" stroke-width="60" stroke-linecap="round"
+      opacity="0.45" filter="url(#outerGlow)"/>
+    <path
+      d="M 0 -200
+         A 200 200 0 0 1 161.8 117.6"
+      fill="none" stroke="url(#innerArc)" stroke-width="60" stroke-linecap="round"/>
+  </g>
+
+  <!-- center accent: a small orange dot reading as both a percentage marker
+       and a tip-of-arc highlight -->
+  <circle cx="512" cy="512" r="22" fill="#FFB892"/>
+  <circle cx="512" cy="512" r="11" fill="#2A1A14"/>
+</svg>

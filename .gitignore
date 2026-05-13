@@ -17,6 +17,12 @@
 **/.cxx/
 **/.kotlin/
 
+# iOS / Xcode (claude-usage-widget-ios)
+**/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+**/DerivedData/
+**/*.xcuserstate
+
 # Node / Python (in case any subproject adds them)
 **/node_modules/
 **/__pycache__/
