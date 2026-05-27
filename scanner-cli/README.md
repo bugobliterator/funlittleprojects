@@ -13,6 +13,27 @@ python3 -m venv .venv
 
 This installs a `scanner` command.
 
+## Windows
+
+Everything works the same on Windows; only two things differ from the examples below:
+
+- **venv paths** use `Scripts\` instead of `bin/`:
+  ```pwsh
+  python -m venv .venv
+  .venv\Scripts\pip install -e .
+  .venv\Scripts\scanner ports
+  ```
+- **Port names** are COM ports, not `/dev/...`. Run `scanner ports` to find the
+  name, then pass it with `-p`:
+  ```pwsh
+  scanner -p COM3 scan
+  ```
+  (pyserial handles the `\\.\COM10` form automatically for ports >= COM10.)
+
+A prebuilt standalone Windows package (no Python needed) is available from the
+**Package scanner** GitHub Actions workflow — download the `scanner-windows-x64`
+artifact and run `scanner.exe`.
+
 ## Usage
 
 The engine must be set to an **RS232 interface** (scan the `PAP232` Plug-and-Play
