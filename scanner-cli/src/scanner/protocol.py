@@ -49,3 +49,60 @@ def build_query(
         + kind.value.encode("ascii")
         + storage.value.encode("ascii")
     )
+
+
+from dataclasses import dataclass
+
+# Status bytes the device returns.
+ACK = 0x06
+ENQ = 0x05
+NAK = 0x15
+
+# Punctuation that separates (`,` `;`) or terminates (`.` `!`) commands.
+_PUNCTUATION = frozenset(b",;.!")
+
+
+class Status(Enum):
+    """Result reported by the device for a command."""
+
+    ACK = ACK  # good command, processed
+    ENQ = ENQ  # invalid Tag or SubTag
+    NAK = NAK  # data out of allowable range
+
+
+_STATUS_BY_BYTE = {member.value: member for member in Status}
+
+
+@dataclass(frozen=True)
+class Response:
+    """One echoed command segment plus the device's status for it."""
+
+    payload: str
+    status: Status
+
+
+def parse_response(raw: bytes) -> list[Response]:
+    """Parse a device response into ``Response`` segments.
+
+    The device echoes each command's payload with a status byte inserted
+    directly before the following punctuation mark. We accumulate payload
+    bytes until a status byte, emit a ``Response``, then skip the trailing
+    punctuation char if present.
+    """
+    responses: list[Response] = []
+    payload = bytearray()
+    i = 0
+    while i < len(raw):
+        byte = raw[i]
+        status = _STATUS_BY_BYTE.get(byte)
+        if status is not None:
+            responses.append(
+                Response(payload.decode("ascii", errors="replace"), status)
+            )
+            payload.clear()
+            if i + 1 < len(raw) and raw[i + 1] in _PUNCTUATION:
+                i += 1  # consume the punctuation that follows the status byte
+        else:
+            payload.append(byte)
+        i += 1
+    return responses
