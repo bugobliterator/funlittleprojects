@@ -96,3 +96,20 @@ def test_send_without_port_is_usage_error(monkeypatch):
     result = CliRunner().invoke(main, ["send", "CBRENA1"])
     assert result.exit_code == 2  # click UsageError
     assert "port" in result.output.lower()
+
+
+def test_query_current_frames_question_mark(monkeypatch):
+    _patch(monkeypatch, response=b"CBRENA1\x06.")
+    result = CliRunner().invoke(main, ["--port", "loop://", "query", "CBRENA"])
+    assert result.exit_code == 0
+    assert FakeTransport.last_instance.sent[0] == b"\x16M\rCBRENA?."
+    assert "CBRENA1" in result.output
+
+
+def test_query_range_frames_star(monkeypatch):
+    _patch(monkeypatch, response=b"CBRENA0-1\x06.")
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "query", "CBRENA", "--kind", "range"]
+    )
+    assert result.exit_code == 0
+    assert FakeTransport.last_instance.sent[0] == b"\x16M\rCBRENA*."

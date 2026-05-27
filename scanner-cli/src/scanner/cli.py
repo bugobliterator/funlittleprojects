@@ -8,7 +8,7 @@ import click
 import serial
 
 from . import protocol
-from .protocol import Status, Storage
+from .protocol import Query, Status, Storage
 from .transport import SerialTransport, list_ports
 
 EXIT_ACK = 0
@@ -118,6 +118,28 @@ def send(ctx, mnemonic, persist):
     """Send a menu command, e.g. `scanner -p PORT send CBRENA1`."""
     storage = Storage.NONVOLATILE if persist else Storage.VOLATILE
     frame = protocol.build_menu_command(mnemonic, storage)
+    raw = _exchange(ctx, frame)
+    _report_and_exit(raw)
+
+
+@main.command()
+@click.argument("tag_subtag")
+@click.option(
+    "--kind",
+    type=click.Choice(["current", "default", "range"]),
+    default="current",
+    show_default=True,
+    help="Which value to query.",
+)
+@click.pass_context
+def query(ctx, tag_subtag, kind):
+    """Query a setting, e.g. `scanner -p PORT query CBRENA --kind range`."""
+    kinds = {
+        "current": Query.CURRENT,
+        "default": Query.DEFAULT,
+        "range": Query.RANGE,
+    }
+    frame = protocol.build_query(tag_subtag, kinds[kind])
     raw = _exchange(ctx, frame)
     _report_and_exit(raw)
 
