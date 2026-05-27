@@ -113,3 +113,17 @@ def test_query_range_frames_star(monkeypatch):
     )
     assert result.exit_code == 0
     assert FakeTransport.last_instance.sent[0] == b"\x16M\rCBRENA*."
+
+
+def test_trigger_sends_activate(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(main, ["--port", "loop://", "trigger"])
+    assert result.exit_code == 0
+    assert FakeTransport.last_instance.sent == [b"\x16T\r"]
+
+
+def test_untrigger_sends_deactivate(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(main, ["--port", "loop://", "untrigger"])
+    assert result.exit_code == 0
+    assert FakeTransport.last_instance.sent == [b"\x16U\r"]

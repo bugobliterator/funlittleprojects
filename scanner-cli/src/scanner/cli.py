@@ -81,6 +81,16 @@ def _exchange(ctx, frame: bytes) -> bytes:
     return raw
 
 
+def _send_only(ctx, frame: bytes) -> None:
+    transport = _connect(ctx)
+    try:
+        if ctx.obj["verbose"]:
+            click.echo(f"TX: {frame.hex(' ')}", err=True)
+        transport.send(frame)
+    finally:
+        transport.close()
+
+
 def _report_and_exit(raw: bytes) -> None:
     responses = protocol.parse_response(raw)
     if not responses:
@@ -142,6 +152,22 @@ def query(ctx, tag_subtag, kind):
     frame = protocol.build_query(tag_subtag, kinds[kind])
     raw = _exchange(ctx, frame)
     _report_and_exit(raw)
+
+
+@main.command()
+@click.pass_context
+def trigger(ctx):
+    """Activate scanning (SYN T CR). Requires Manual Trigger Mode (TRGMOD)."""
+    _send_only(ctx, protocol.ACTIVATE)
+    click.echo("trigger activated")
+
+
+@main.command()
+@click.pass_context
+def untrigger(ctx):
+    """Deactivate scanning (SYN U CR)."""
+    _send_only(ctx, protocol.DEACTIVATE)
+    click.echo("trigger deactivated")
 
 
 if __name__ == "__main__":
