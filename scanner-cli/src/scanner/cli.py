@@ -258,15 +258,49 @@ def listen(ctx, seconds, interval):
             transport.close()
 
 
+_REPL_HELP = """\
+Commands:
+  MNEMONIC    Send a menu command, e.g. CBRENA1; prints ACK/ENQ/NAK.
+  :scan       Trigger once; print the first barcode (waits up to 5s).
+  :trigger    Activate scanning (SYN T).
+  :untrigger  Deactivate scanning (SYN U).
+  :listen     Stream decoded barcodes until Ctrl-C.
+  :menuhelp   Show known menu-command mnemonics.
+  :help       Show this help (alias :?).
+  :quit       Exit (alias :q)."""
+
+_MENU_HELP = """\
+Known mnemonics (send these; append ? ^ * to query):
+  Interface / setup
+    PAP232        RS232 serial interface: 115200 8N1, CR+LF suffix, manual trigger
+    TERMID0       RS232 interface only (granular; keeps trigger mode)
+    232BAD9       Baud 115200 (0=300 ... 8=57600, 9=115200)
+    232WRD2       8 data bits, no parity, 1 stop
+  Trigger / scan mode
+    PAPHHF        Manual trigger (normal)
+    PAPPST        Presentation mode (hands-free)
+    TRGMOD3       Presentation mode (granular)
+    TRGSTO30000   Serial read time-out, ms (0-300000; default 30000)
+    DLYGRD0       Good-read delay, ms (0-30000)
+    TRGPMS1       Presentation sensitivity (0-20)
+  Output formatting
+    VSUFCR        Add CR suffix to all symbologies
+  Symbology (example)
+    CBRENA1       Codabar enable on (0=off)
+  Defaults
+    DEFALT        Activate defaults
+    MNUCDF        Set custom defaults
+    MNUCDS        Save custom defaults
+
+Query: append ? (current), ^ (default), * (range), e.g. CBRENA?"""
+
+
 @main.command()
 @click.pass_context
 def repl(ctx):
-    """Interactive prompt: type a mnemonic; :scan/:trigger/:untrigger/:listen/:quit."""
+    """Interactive prompt: type a mnemonic, :scan, :listen, :menuhelp, :help, :quit."""
     transport = _connect(ctx)
-    click.echo(
-        "scanner REPL -- type a mnemonic, :scan for one barcode, or :quit to exit",
-        err=True,
-    )
+    click.echo(_REPL_HELP)
     try:
         while True:
             try:
@@ -277,7 +311,11 @@ def repl(ctx):
                 continue
             if line in (":quit", ":q"):
                 break
-            if line == ":scan":
+            if line in (":help", ":?"):
+                click.echo(_REPL_HELP)
+            elif line == ":menuhelp":
+                click.echo(_MENU_HELP)
+            elif line == ":scan":
                 barcode = _scan_once(transport, 5.0)
                 click.echo(barcode if barcode is not None else "no scan within 5s")
             elif line == ":trigger":

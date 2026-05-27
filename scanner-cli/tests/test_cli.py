@@ -207,3 +207,44 @@ def test_repl_scan_metacommand(monkeypatch):
     inst = FakeTransport.last_instance
     assert b"\x16T\r" in inst.sent  # triggered a scan
     assert "CU11X25010374" in result.output
+
+
+def test_repl_shows_help_on_start(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(main, ["--port", "loop://", "repl"], input=":quit\n")
+    assert result.exit_code == 0
+    assert "Commands:" in result.output  # help printed on startup
+
+
+def test_repl_help_lists_every_command(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(main, ["--port", "loop://", "repl"], input=":help\n:quit\n")
+    assert result.exit_code == 0
+    for token in (
+        "MNEMONIC",
+        ":scan",
+        ":trigger",
+        ":untrigger",
+        ":listen",
+        ":menuhelp",
+        ":help",
+        ":quit",
+    ):
+        assert token in result.output
+
+
+def test_repl_help_question_mark_alias(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(main, ["--port", "loop://", "repl"], input=":?\n:quit\n")
+    assert result.exit_code == 0
+    assert ":scan" in result.output
+
+
+def test_repl_menuhelp_lists_mnemonics(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "repl"], input=":menuhelp\n:quit\n"
+    )
+    assert result.exit_code == 0
+    for token in ("PAP232", "VSUFCR", "TRGMOD3", "DEFALT", "CBRENA1"):
+        assert token in result.output
