@@ -127,3 +127,40 @@ def test_untrigger_sends_deactivate(monkeypatch):
     result = CliRunner().invoke(main, ["--port", "loop://", "untrigger"])
     assert result.exit_code == 0
     assert FakeTransport.last_instance.sent == [b"\x16U\r"]
+
+
+def test_listen_activates_streams_then_deactivates(monkeypatch):
+    def factory(*args, **kwargs):
+        t = FakeTransport(*args, **kwargs)
+        t.scans = ["12345", "67890"]
+        return t
+
+    monkeypatch.setattr("scanner.cli.SerialTransport", factory)
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "listen", "--seconds", "0.1"]
+    )
+    assert result.exit_code == 0
+    inst = FakeTransport.last_instance
+    assert inst.sent[0] == b"\x16T\r"   # activate first
+    assert inst.sent[-1] == b"\x16U\r"  # deactivate last
+    assert "12345" in result.output
+    assert "67890" in result.output
+
+
+def test_repl_runs_mnemonic_then_quits(monkeypatch):
+    _patch(monkeypatch, response=b"CBRENA1\x06.")
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "repl"], input="CBRENA1\n:quit\n"
+    )
+    assert result.exit_code == 0
+    assert FakeTransport.last_instance.sent[0] == b"\x16M\rCBRENA1!"
+    assert "CBRENA1" in result.output
+
+
+def test_repl_trigger_metacommand(monkeypatch):
+    _patch(monkeypatch)
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "repl"], input=":trigger\n:quit\n"
+    )
+    assert result.exit_code == 0
+    assert b"\x16T\r" in FakeTransport.last_instance.sent

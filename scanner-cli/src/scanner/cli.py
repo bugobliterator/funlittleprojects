@@ -170,5 +170,75 @@ def untrigger(ctx):
     click.echo("trigger deactivated")
 
 
+@main.command()
+@click.option(
+    "--seconds",
+    type=float,
+    default=None,
+    help="Stop after N seconds (default: until Ctrl-C).",
+)
+@click.pass_context
+def listen(ctx, seconds):
+    """Activate the trigger and print decoded barcodes until Ctrl-C."""
+    transport = _connect(ctx)
+    try:
+        transport.send(protocol.ACTIVATE)
+        click.echo("listening (Ctrl-C to stop)...", err=True)
+        for scan in transport.read_scans(timeout=seconds):
+            click.echo(scan)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        try:
+            transport.send(protocol.DEACTIVATE)
+        finally:
+            transport.close()
+
+
+@main.command()
+@click.pass_context
+def repl(ctx):
+    """Interactive prompt: type a mnemonic; :trigger/:untrigger/:listen/:quit."""
+    transport = _connect(ctx)
+    click.echo("scanner REPL -- type a mnemonic, or :quit to exit", err=True)
+    try:
+        while True:
+            try:
+                line = input("scanner> ").strip()
+            except EOFError:
+                break
+            if not line:
+                continue
+            if line in (":quit", ":q"):
+                break
+            if line == ":trigger":
+                transport.send(protocol.ACTIVATE)
+                click.echo("trigger activated")
+            elif line == ":untrigger":
+                transport.send(protocol.DEACTIVATE)
+                click.echo("trigger deactivated")
+            elif line == ":listen":
+                transport.send(protocol.ACTIVATE)
+                click.echo("listening (Ctrl-C to stop)...", err=True)
+                try:
+                    for scan in transport.read_scans():
+                        click.echo(scan)
+                except KeyboardInterrupt:
+                    transport.send(protocol.DEACTIVATE)
+                    click.echo("")
+            else:
+                transport.send(protocol.build_menu_command(line))
+                raw = transport.read_response(timeout=ctx.obj["timeout"])
+                responses = protocol.parse_response(raw)
+                if not responses:
+                    click.echo(
+                        f"no/garbled response (RX: {raw.hex(' ') or '<empty>'})"
+                    )
+                for r in responses:
+                    click.echo(f"{r.payload}  [{_STATUS_MEANING[r.status]}]")
+    finally:
+        transport.close()
+
+
 if __name__ == "__main__":
     main()
