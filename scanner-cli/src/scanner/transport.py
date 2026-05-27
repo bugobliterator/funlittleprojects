@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 
 import serial
+from serial.tools import list_ports as _list_ports
 
 
 class SerialTransport:
@@ -72,3 +74,44 @@ class SerialTransport:
             else:
                 time.sleep(0.01)
         return bytes(buf)
+
+    def read_scans(self, timeout: float | None = None) -> Iterator[str]:
+        """Yield decoded barcode lines as they arrive.
+
+        Splits the incoming stream on CR and/or LF. With ``timeout=None`` this
+        runs until interrupted (e.g. KeyboardInterrupt in the caller);
+        otherwise it stops after ``timeout`` seconds.
+        """
+        buf = bytearray()
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while deadline is None or time.monotonic() < deadline:
+            waiting = self._serial.in_waiting
+            if waiting:
+                buf.extend(self._serial.read(waiting))
+                yield from _drain_lines(buf)
+            else:
+                time.sleep(0.01)
+
+
+def _drain_lines(buf: bytearray) -> list[str]:
+    """Pull complete CR/LF-terminated lines out of ``buf`` (mutates ``buf``)."""
+    lines: list[str] = []
+    while True:
+        cr = buf.find(0x0D)
+        lf = buf.find(0x0A)
+        candidates = [p for p in (cr, lf) if p != -1]
+        if not candidates:
+            break
+        idx = min(candidates)
+        line = bytes(buf[:idx]).decode("ascii", errors="replace").strip()
+        del buf[: idx + 1]
+        if buf and buf[0] in (0x0D, 0x0A):
+            del buf[0]  # consume the paired CRLF/LFCR byte
+        if line:
+            lines.append(line)
+    return lines
+
+
+def list_ports() -> list:
+    """Return available serial ports as pyserial ``ListPortInfo`` objects."""
+    return list(_list_ports.comports())
