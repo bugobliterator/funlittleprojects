@@ -8,9 +8,29 @@ Personal git repo holding side projects and Claude Code skills.
   - `android-emulator-debugging/`
   - `log-analyzer/`
 - `claude-usage-widget/` — Android home-screen widget showing Claude usage
+- `scanner-cli/` — Python CLI for sending Honeywell N36XX barcode-engine commands over serial
+- `.github/workflows/` — GitHub Actions (see `package.yml` under scanner-cli below)
 - `.githooks/` — git hooks (see Hooks below)
 - `.claude/settings.json` — Claude Code project settings (PreToolUse personal-info hook)
 - `scripts/scan-personal-info.py` — shared scanner used by both hooks
+
+## scanner-cli
+
+A Python CLI for talking to a Honeywell N36XX decoded barcode scan engine over an
+RS232 serial line: raw menu/query/trigger commands (the `SYN M CR` protocol),
+`ACK`/`ENQ`/`NAK` response parsing, and decoded-barcode streaming.
+
+```sh
+cd scanner-cli && python3 -m venv .venv && .venv/bin/pip install -e .
+scanner -p /dev/cu.usbserial-XXXX scan                 # trigger, wait up to 5s, print one barcode
+scanner -p /dev/cu.usbserial-XXXX listen               # stream decodes continuously
+scanner -p /dev/cu.usbserial-XXXX send PAP232 --persist # set RS232 interface (persisted)
+scanner -p /dev/cu.usbserial-XXXX repl                  # interactive session (:help, :menuhelp)
+```
+
+See `scanner-cli/README.md` for the full command reference. Standalone single-folder
+builds for Windows and Linux are produced by the **Package scanner** GitHub Actions
+workflow (`.github/workflows/package.yml`, run manually from the Actions tab).
 
 ## Hooks
 
