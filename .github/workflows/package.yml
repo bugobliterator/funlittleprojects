@@ -1,0 +1,47 @@
+name: Package scanner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: scanner-linux-x64
+          - os: windows-latest
+            artifact: scanner-windows-x64
+    defaults:
+      run:
+        working-directory: scanner-cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and PyInstaller
+        run: pip install . pyinstaller
+
+      - name: Build single-folder package
+        run: pyinstaller --onedir --name scanner --collect-submodules serial packaging/scanner_entry.py
+
+      - name: Smoke test the built binary (Linux)
+        if: runner.os == 'Linux'
+        run: ./dist/scanner/scanner ports
+
+      - name: Smoke test the built binary (Windows)
+        if: runner.os == 'Windows'
+        run: .\dist\scanner\scanner.exe ports
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: scanner-cli/dist/scanner
+          if-no-files-found: error
