@@ -37,3 +37,15 @@ def test_read_scans_handles_crlf():
 
 def test_list_ports_returns_a_list():
     assert isinstance(list_ports(), list)
+
+
+def test_poll_lines_drains_complete_lines_and_buffers_partial():
+    with SerialTransport("loop://", timeout=1.0) as t:
+        t.send(b"AAA\rBBB")  # one complete line, one partial
+        time.sleep(0.05)
+        first = t.poll_lines()
+        assert first == ["AAA"]
+        t.send(b"CCC\r")  # completes the buffered "BBB" line plus a new one
+        time.sleep(0.05)
+        second = t.poll_lines()
+    assert second == ["BBBCCC"]

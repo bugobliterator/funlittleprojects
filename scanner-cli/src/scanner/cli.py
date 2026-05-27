@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 
 import click
 import serial
@@ -170,6 +171,48 @@ def untrigger(ctx):
     click.echo("trigger deactivated")
 
 
+def _scan_once(transport, seconds: float) -> str | None:
+    """Trigger once and return the first decoded barcode, or None on timeout.
+
+    Does not open or close the transport (the caller owns its lifecycle), so it
+    is reusable by both the `scan` command and the REPL `:scan` meta-command.
+    """
+    deadline = time.monotonic() + seconds
+    try:
+        transport.send(protocol.ACTIVATE)
+        while time.monotonic() < deadline:
+            lines = transport.poll_lines()
+            if lines:
+                return lines[0]
+            time.sleep(0.02)
+        return None
+    finally:
+        transport.send(protocol.DEACTIVATE)
+
+
+@main.command()
+@click.option(
+    "--seconds",
+    type=float,
+    default=5.0,
+    show_default=True,
+    help="Max time to wait for a scan.",
+)
+@click.pass_context
+def scan(ctx, seconds):
+    """Trigger one scan over serial and print the first barcode (waits up to N seconds)."""
+    transport = _connect(ctx)
+    try:
+        barcode = _scan_once(transport, seconds)
+    finally:
+        transport.close()
+    if barcode is None:
+        click.echo(f"no scan within {seconds:g}s", err=True)
+        sys.exit(EXIT_NO_RESPONSE)
+    click.echo(barcode)
+    sys.stdout.flush()
+
+
 @main.command()
 @click.option(
     "--seconds",
@@ -177,15 +220,35 @@ def untrigger(ctx):
     default=None,
     help="Stop after N seconds (default: until Ctrl-C).",
 )
+@click.option(
+    "--interval",
+    type=float,
+    default=2.0,
+    show_default=True,
+    help="Re-assert the serial trigger every N seconds to keep illumination on "
+    "(needed in manual/serial trigger mode; set 0 to disable).",
+)
 @click.pass_context
-def listen(ctx, seconds):
-    """Activate the trigger and print decoded barcodes until Ctrl-C."""
+def listen(ctx, seconds, interval):
+    """Activate the trigger and print decoded barcodes until Ctrl-C.
+
+    Re-asserts the trigger on an interval so the engine keeps scanning
+    continuously in manual/serial trigger mode (TRGMOD0). Harmless in
+    presentation mode.
+    """
     transport = _connect(ctx)
+    click.echo("listening (Ctrl-C to stop)...", err=True)
+    deadline = None if seconds is None else time.monotonic() + seconds
+    next_trig: float | None = time.monotonic() if interval and interval > 0 else None
     try:
-        transport.send(protocol.ACTIVATE)
-        click.echo("listening (Ctrl-C to stop)...", err=True)
-        for scan in transport.read_scans(timeout=seconds):
-            click.echo(scan)
+        while deadline is None or time.monotonic() < deadline:
+            if next_trig is not None and time.monotonic() >= next_trig:
+                transport.send(protocol.ACTIVATE)
+                next_trig += interval
+            for scan in transport.poll_lines():
+                click.echo(scan)
+                sys.stdout.flush()
+            time.sleep(0.02)
     except KeyboardInterrupt:
         pass
     finally:
@@ -198,9 +261,12 @@ def listen(ctx, seconds):
 @main.command()
 @click.pass_context
 def repl(ctx):
-    """Interactive prompt: type a mnemonic; :trigger/:untrigger/:listen/:quit."""
+    """Interactive prompt: type a mnemonic; :scan/:trigger/:untrigger/:listen/:quit."""
     transport = _connect(ctx)
-    click.echo("scanner REPL -- type a mnemonic, or :quit to exit", err=True)
+    click.echo(
+        "scanner REPL -- type a mnemonic, :scan for one barcode, or :quit to exit",
+        err=True,
+    )
     try:
         while True:
             try:
@@ -211,7 +277,10 @@ def repl(ctx):
                 continue
             if line in (":quit", ":q"):
                 break
-            if line == ":trigger":
+            if line == ":scan":
+                barcode = _scan_once(transport, 5.0)
+                click.echo(barcode if barcode is not None else "no scan within 5s")
+            elif line == ":trigger":
                 transport.send(protocol.ACTIVATE)
                 click.echo("trigger activated")
             elif line == ":untrigger":

@@ -35,6 +35,7 @@ class SerialTransport:
             timeout=timeout,
             do_not_open=True,
         )
+        self._scan_buf = bytearray()  # persistent assembly buffer for poll_lines
 
     def __enter__(self) -> "SerialTransport":
         self.open()
@@ -75,6 +76,17 @@ class SerialTransport:
                 time.sleep(0.01)
         return bytes(buf)
 
+    def poll_lines(self) -> list[str]:
+        """Non-blocking: drain any waiting bytes and return complete CR/LF lines.
+
+        Buffers partial lines across calls, so a caller can interleave this with
+        other work (e.g. re-asserting a serial trigger on an interval).
+        """
+        waiting = self._serial.in_waiting
+        if waiting:
+            self._scan_buf.extend(self._serial.read(waiting))
+        return _drain_lines(self._scan_buf)
+
     def read_scans(self, timeout: float | None = None) -> Iterator[str]:
         """Yield decoded barcode lines as they arrive.
 
@@ -82,13 +94,11 @@ class SerialTransport:
         runs until interrupted (e.g. KeyboardInterrupt in the caller);
         otherwise it stops after ``timeout`` seconds.
         """
-        buf = bytearray()
         deadline = None if timeout is None else time.monotonic() + timeout
         while deadline is None or time.monotonic() < deadline:
-            waiting = self._serial.in_waiting
-            if waiting:
-                buf.extend(self._serial.read(waiting))
-                yield from _drain_lines(buf)
+            lines = self.poll_lines()
+            if lines:
+                yield from lines
             else:
                 time.sleep(0.01)
 

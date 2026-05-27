@@ -35,6 +35,11 @@ class FakeTransport:
     def read_scans(self, timeout=None):
         yield from self.scans
 
+    def poll_lines(self):
+        out = self.scans
+        self.scans = []
+        return out
+
 
 def _patch(monkeypatch, response=b""):
     def factory(*args, **kwargs):
@@ -164,3 +169,41 @@ def test_repl_trigger_metacommand(monkeypatch):
     )
     assert result.exit_code == 0
     assert b"\x16T\r" in FakeTransport.last_instance.sent
+
+
+def test_scan_triggers_and_prints_first_barcode(monkeypatch):
+    def factory(*args, **kwargs):
+        t = FakeTransport(*args, **kwargs)
+        t.scans = ["CU11X25010374"]
+        return t
+
+    monkeypatch.setattr("scanner.cli.SerialTransport", factory)
+    result = CliRunner().invoke(main, ["--port", "loop://", "scan"])
+    assert result.exit_code == 0
+    inst = FakeTransport.last_instance
+    assert inst.sent[0] == b"\x16T\r"   # triggered the scan
+    assert inst.sent[-1] == b"\x16U\r"  # deactivated afterward
+    assert result.output.strip() == "CU11X25010374"
+
+
+def test_scan_times_out_with_no_scan(monkeypatch):
+    _patch(monkeypatch)  # no scans
+    result = CliRunner().invoke(main, ["--port", "loop://", "scan", "--seconds", "0.2"])
+    assert result.exit_code == 3
+    assert "no scan" in result.output.lower()
+
+
+def test_repl_scan_metacommand(monkeypatch):
+    def factory(*args, **kwargs):
+        t = FakeTransport(*args, **kwargs)
+        t.scans = ["CU11X25010374"]
+        return t
+
+    monkeypatch.setattr("scanner.cli.SerialTransport", factory)
+    result = CliRunner().invoke(
+        main, ["--port", "loop://", "repl"], input=":scan\n:quit\n"
+    )
+    assert result.exit_code == 0
+    inst = FakeTransport.last_instance
+    assert b"\x16T\r" in inst.sent  # triggered a scan
+    assert "CU11X25010374" in result.output
