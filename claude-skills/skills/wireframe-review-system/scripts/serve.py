@@ -47,6 +47,10 @@ def _save(v, ann):
 def add_wire(d):
     v = str(d.get("view") or "view"); ann = load_wire(v)
     e = {k: d.get(k) for k in ("id", "type", "author", "x", "y", "w", "h", "points", "text", "ts") if d.get(k) is not None}
+    # id/type land in DOM attributes client-side — reject anything not a bare token
+    for k in ("id", "type"):
+        if k in e and not (isinstance(e[k], str) and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", e[k])):
+            e.pop(k)
     e.setdefault("id", f"a{len(ann)}"); ann.append(e); _save(v, ann); return ann
 
 

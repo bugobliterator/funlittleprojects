@@ -32,7 +32,7 @@
   fitOverlay();
   if(window.ResizeObserver){ try{ new ResizeObserver(fitOverlay).observe(doc); }catch(e){} }
 
-  function esc(s){return (s==null?"":String(s)).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
+  function esc(s){return (s==null?"":String(s)).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
   // h uses contentHeight() (overlay excluded) so the freehand SVG viewBox matches
   // the overlay's pixel height 1:1 and stroke coordinates stay aligned.
   function size(){return {w:doc.scrollWidth,h:contentHeight()};}
