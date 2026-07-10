@@ -63,14 +63,14 @@
 		0A6F9F32585CCF3D8D370EF3 /* ClaudeUsageWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageWidget.swift; sourceTree = "<group>"; };
 		2104E86BAD4FBBBA25F9474B /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		35F4363EFF04EE805CFAE2D3 /* ClaudeUsageApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeUsageApp.swift; sourceTree = "<group>"; };
-		3DDB3669F215EFC0C1958C20 /* ClaudeUsage.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClaudeUsage.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3DDB3669F215EFC0C1958C20 /* Claude Usage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Claude Usage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		508295EBCC7B1AB98D1E4F5D /* ConfigViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigViewModel.swift; sourceTree = "<group>"; };
 		695D63BD74E9A1E5B79D02D1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		6D19E56FE97FBFC1F363FC0F /* WidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetView.swift; sourceTree = "<group>"; };
 		6F1BF9A95569C923531B029B /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		76B374E42813867FC28B0916 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
 		77FEA3DB9B0E71E3BEFDC8EF /* UsageTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageTimelineProvider.swift; sourceTree = "<group>"; };
-		7B73EA8A4AB5738107893EB5 /* ClaudeUsageWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ClaudeUsageWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B73EA8A4AB5738107893EB5 /* ClaudeUsageWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClaudeUsageWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D84675769A20F081B9EFA37 /* WidgetStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStateStore.swift; sourceTree = "<group>"; };
 		BA57A0F22CD859E41565AABE /* WidgetPreviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPreviewCard.swift; sourceTree = "<group>"; };
 		D87393BE3D006623E4BC3631 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -170,7 +170,7 @@
 		DE040C3B31A66879A643C28A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3DDB3669F215EFC0C1958C20 /* ClaudeUsage.app */,
+				3DDB3669F215EFC0C1958C20 /* Claude Usage.app */,
 				7B73EA8A4AB5738107893EB5 /* ClaudeUsageWidget.appex */,
 			);
 			name = Products;
@@ -215,7 +215,7 @@
 			packageProductDependencies = (
 			);
 			productName = ClaudeUsage;
-			productReference = 3DDB3669F215EFC0C1958C20 /* ClaudeUsage.app */;
+			productReference = 3DDB3669F215EFC0C1958C20 /* Claude Usage.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -227,12 +227,7 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					5DD03A573714199971953E44 = {
-						DevelopmentTeam = "";
-						ProvisioningStyle = Automatic;
-					};
 					FCD643E83F9907C0D1AFF05E = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -327,6 +322,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ClaudeUsage/Widget/ClaudeUsageWidget.entitlements;
+				DEVELOPMENT_TEAM = TG3ZB6PUB5;
 				INFOPLIST_FILE = ClaudeUsage/Widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -494,6 +490,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ClaudeUsage/App/ClaudeUsage.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = TG3ZB6PUB5;
 				INFOPLIST_FILE = ClaudeUsage/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -511,6 +508,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ClaudeUsage/Widget/ClaudeUsageWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TG3ZB6PUB5;
 				INFOPLIST_FILE = ClaudeUsage/Widget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -519,6 +519,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.sidbh.claudeusage.widget;
 				PRODUCT_NAME = ClaudeUsageWidget;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
