@@ -6,7 +6,16 @@ description: Turn THIS session into the team-lead of an agent team for building 
 # Cost-Optimised Team Lead
 
 You are now the **team-lead** of this project. Your job is orchestration — dispatching, gating, merging,
-and keeping state — not implementation. This skill exists because the lead session usually runs the most
+and keeping state — not implementation.
+
+## Brainstorming never pauses the pipeline (HARD RULE — user, 2026-07-12)
+
+A design/brainstorm conversation with the user occupies the LEAD's attention between turns — it never
+idles the team. In-flight implementation (panes, teammates, gates, merges) continues in parallel: keep
+monitors armed, adjudicate gate results, fix-dispatch, and merge as events land WHILE the brainstorm
+proceeds. A green branch waiting on a spec discussion is a violation; so is blocking the user's design
+questions on pipeline events. The two streams interleave — user turns drive the brainstorm, background
+events drive the pipeline, and neither waits for the other. This skill exists because the lead session usually runs the most
 expensive model (2–5× teammate cost per token): every token you spend reading files, viewing screenshots,
 or writing code yourself is money that a cheaper agent could have spent better. The discipline below was
 battle-tested on a real multi-week internal-tools build; each rule earns its place by a failure it prevents.
@@ -76,6 +85,12 @@ loops) goes to Codex, and Claude models are reserved for what they're differenti
   (Playwright spec files, runners) is ordinary coding → `gpt-5.6-terra`; only the *driving/verification*
   uses luna. Headless deterministic Playwright runs need no model at all. (The `ui-review` project skill
   still drives via Claude MCP internally — rewiring it to luna is a tracked follow-up, not done yet.)
+  **luna operational notes (2026-07-11, live-verified):** in SPAWNED panes luna's Chrome-instance
+  attachment finds nothing ("no instances detected") — have it LAUNCH ITS OWN browser via a throwaway
+  Playwright script (headless chromium; `npx playwright install chromium` on first use). For card/section
+  shots use ELEMENT screenshots (`locator(...).screenshot()`), and require the agent to VERIFY the PNG's
+  dimensions before judging it — a mis-clipped 60px sliver once produced confidently wrong verdicts on an
+  empty image. The lead re-inspects any verdict-bearing capture itself.
 - **Cross-vendor at the gate:** Claude (Sonnet) reviews Codex-written code; Codex adversarially reviews
   Claude-written high-risk code. Neither vendor grades only its own homework.
 - **⛔ FE ROUTING IS ABSOLUTE — NO LEAD-JUDGMENT EXCEPTIONS (user directive 2026-07-10, after a real
@@ -160,17 +175,32 @@ transport changes:
 - **Dispatch — iTerm2 SPLIT PANE next to the lead, like any other teammate (primary, when interactive):**
   the teammate must appear as a split of the LEAD's own pane — never a new window (the user can't see a
   detached window; a split reads as a teammate at the desk). Use the **iTerm2 Python API scripts bundled
-  in this skill's `scripts/`** (`python3` with the `iterm2` package; NOT AppleScript — see the hard
-  lesson below). Two steps:
-  1. Find the lead pane's tty by walking this shell's ancestry to the `claude` process:
-     `P=$$; while [ "$P" != 1 ]; do case "$(ps -o command= -p $P)" in claude*) ps -o tty= -p $P; break;; esac; P=$(ps -o ppid= -p $P | tr -d ' '); done`
-  2. Split that session and launch, **capturing the new pane's session_id** — it is the ONLY sane
-     address for every later message to this teammate:
-     `python3 <skill>/scripts/codex_spawn.py /dev/<lead-tty> <launcher.sh>` → prints the session_id.
-     Record it in the orchestration state file immediately.
-  `<launcher.sh>` (written to the scratchpad) does `cd <worktree> && codex "<brief>"` (or
-  `codex resume <session-id> "<follow-up>"` for fix rounds — the Codex session id survives pane/window
-  death, so a killed teammate resumes with context intact) and ends with `exec bash` so the pane stays open.
+  in this skill's `scripts/`** (`python3` with the `iterm2` package; NOT AppleScript). **HEADLESS
+  `codex exec` IS BANNED — non-negotiable user ruling (2026-07-13): every Codex run, including
+  crash/outage continuations and probes, runs in a VISIBLE iTerm2 pane. If panes keep dying:
+  wip-checkpoint the worktree, `--resume last`, and if still failing STOP and surface to the user —
+  never trade visibility for uptime.** Each is ONE
+  self-verifying call — read the script docstrings for full mechanics; do not re-implement the steps
+  by hand:
+  1. Write the brief to a file (scratchpad), then:
+     `python3 <skill>/scripts/codex_spawn.py --cwd <worktree> --brief-file <brief.txt> --trust`
+     → prints the new pane's **session_id** (the ONLY sane address for every later message — record it
+     in the orchestration state file immediately), auto-detects the lead pane from `$ITERM_SESSION_ID`,
+     pre-registers the worktree in Codex's trust store (`--trust`, else a first launch in a new
+     directory BLOCKS on the trust dialog), launches codex with the brief as CLI arg, and watches
+     startup: exit 0 + `startup: WORKING` = brief running; exit 3 = blocked, dialog text printed.
+     `--resume <codex-session-id|last>` for fix rounds (Codex session context survives pane death);
+     `--profile luna` for browser work; `--model spark` for trivia; default model from
+     `~/.codex/config.toml` (gpt-5.6-terra).
+  2. Message a RUNNING Codex: `python3 <skill>/scripts/codex_send.py <session_id> --file <msg.txt>`
+     (short one-liners may go as a plain arg; anything with backticks/`$()`/multi-line MUST use
+     `--file` — bash substitutes inside double quotes and silently drops words). The script owns the
+     whole delivery dance (paste settle → `\r` submit — `\n` never submits — → verify → self-heal stuck
+     paste / "Create a plan?" overlay) and exits 0 ONLY on confirmed delivery; exit 2 = NOT delivered,
+     pane tail printed — read it, never proceed on hope.
+  3. Poll state: `python3 <skill>/scripts/codex_status.py <session_id>` → `WORKING` (leave it alone) /
+     `DIALOG` (blocking dialog — human decision, text printed) / `STUCK_PASTE` / `IDLE` (turn ended;
+     last answer printed) / `DEAD`; distinct exit codes for scripting monitors.
   ⚠ **NEVER address a pane by matching its scrollback text** (AppleScript `text of s contains ...` or
   any content heuristic). Battle scar: a content-matched send delivered a PLAN approval into an unrelated
   Claude session's composer, every follow-up then matched the SAME wrong pane (the injected text became
@@ -178,19 +208,15 @@ transport changes:
   was "Working". Addressing is ALWAYS by session_id captured at spawn; to (re)identify panes after a
   restart, run `scripts/iterm_map.py` (lists session_id / tty / job / name / screen tail — the `job`
   field says `codex` vs `node`) and read a candidate with `scripts/pane_read.py <session_id>`.
-  ⚠ **Messaging a RUNNING Codex TUI** — the delivery protocol (every step, every time):
-  1. `python3 <skill>/scripts/codex_send.py <session_id> "<message>"` (sends text + `\r`).
-     **The submit key is CARRIAGE RETURN `\r` — `\n` does NOT submit in the Codex TUI** (live-verified:
-     a `\n` after a paste leaves `› [Pasted Content N chars]` in the composer indefinitely).
-  2. **Read back**: `scripts/pane_read.py <session_id>` — if the composer still shows
-     `[Pasted Content ...]` or your text behind the `›` prompt, send `codex_send.py <id> ""` (bare
-     `\r`); if a "Create a plan?" overlay appeared, dismiss with a lone ESC (`codex_send.py <id>
-     $'\x1b'`) first, then the bare Enter.
-  3. Read back AGAIN and confirm "• Working" appeared. Not confirmed = not delivered — do not proceed
-     on hope; if two attempts fail, tell the human to hit Enter in the pane and fix the script.
+  ⚠ **Keystrokes into a freshly split pane vanish from the process that did the split** (live-verified
+  iTerm2 quirk: reads keep working; sends silently no-op — same connection, a second connection, even
+  subprocesses of that process). codex_spawn.py is therefore read-only after launch; every interaction
+  after spawn is a separate codex_send.py invocation from the lead's shell.
   Run Codex in its NORMAL interactive mode — no `--dangerously-bypass-*` flags (the permission classifier
   rightly blocks them): it asks for command approvals in the pane and the human supervises, exactly like
-  a watched teammate. Model comes from `~/.codex/config.toml` (gpt-5.6-terra); `-m spark`-tier only for trivia.
+  a watched teammate. (With `approvals_reviewer = "auto_review"` in `~/.codex/config.toml`, most
+  approvals self-resolve; a genuinely blocking dialog surfaces as `DIALOG` in codex_status.py —
+  human/lead decision, never blind-answered by a script.)
 - **Codex briefs must INLINE role-skill rules as text.** Codex cannot invoke Claude skills — "load
   ponytail" means nothing to it. Fold the operative rules into the brief/NOTES (e.g. ponytail's core:
   minimal diff, simplest working solution, no speculative abstraction/factory/config-for-constants, reuse
@@ -217,11 +243,13 @@ transport changes:
   Codex is blocked instead of discovering an hour later. Two hard-won monitor rules (2026-07-10, a
   decision-request sat unseen ~7 min): (a) snapshot baselines BEFORE dispatch and emit on ANY difference
   INCLUDING the first appearance of REPORT.md — a `last=""` loop with a `[ -n "$last" ]` guard suppresses
-  exactly the event that matters; (b) interactive runs need a turn-end detector — poll the pane tail
-  (`pane_read.py <session_id>`) for the count of `Worked for` separators; when it increments with no new
-  commit/REPORT change, emit "TURN ENDED — likely awaiting a ruling" and go read the pane. Waiting states
-  are invisible to terminal-state watchers: a Codex that asked you a question produces no file change and
-  no exit.
+  exactly the event that matters; (b) interactive runs need a turn-end detector — poll
+  `codex_status.py <session_id>` and emit on every state TRANSITION: `WORKING → IDLE` with no new
+  commit/REPORT change = "TURN ENDED — likely awaiting a ruling" (go read the pane; the status output
+  already includes the last answer), `→ DIALOG` = blocked on a human decision, `→ DEAD` = process gone.
+  (Do NOT scrape for `Worked for` separators — that marker is TUI-version-fragile and already gone in
+  v0.144.1; the state classifier keys on stable signals.) Waiting states are invisible to terminal-state
+  watchers: a Codex that asked you a question produces no file change and no exit. (c) Capture the turn-count baseline WHILE the awaited turn is still running — arm the monitor immediately after send-verify; re-arming after the turn ended poisons the baseline (count never increments, monitor times out silently — cost an hour, 2026-07-10, 2nd occurrence). Before arming on an idle-looking pane, READ THE TAIL first — it may already be holding a question.
   Read REPORT.md (durable, survives pane death) instead of scraping the TUI; scrape the pane only when
   there's no report. `REPORT.md`/`PLAN.md`/`NOTES.md`/`.pnpm-store` are NEVER committed — say so in the
   staging instruction. Verify the worktree yourself (`git -C <wt> log/status`) exactly as with Claude
@@ -327,3 +355,23 @@ Before context runs low (yours or a teammate's): refresh the state file + each a
 to current truth (they are curated briefs, not append-only logs — a stale NOTES makes a re-grounded
 teammate redo settled decisions). Prefer re-spawning a fresh teammate over trusting a "compacted ✓"
 self-report when it has no uncommitted work. After your own compaction: re-read the state file FIRST.
+
+## Codex pane crash recovery (verified 2026-07-17)
+
+A Codex iTerm2 pane can DIE (monitor shows `state=DEAD`, pane is bare `bash-5.3$`; if it died at
+startup the brief text appears dumped into bash — the keystrokes outlived the TUI). Deaths happen
+both at startup and MID-WORK; the CLI usually checks out healthy (`codex --version`, pty probe
+`script -q /tmp/out timeout 12 codex`), so don't reinstall — recover:
+
+1. Autopsy cheaply: `pane_read.py <sid>` (grep error/panic/limit) + `git -C <worktree> status
+   --short` — uncommitted changes mean a mid-work death worth RESUMING, not restarting.
+2. `close_pane.py <dead-sid>` then respawn with the SAME `--cwd` and `--brief-file` PLUS
+   **`--resume last`**: `codex_spawn.py --cwd <wt> --brief-file <brief> --resume last --trust`.
+   This reopens the prior codex session with its transcript context AND the worktree's
+   uncommitted work intact — the agent continues where it died instead of re-reading everything.
+3. Verify the resume took: `codex_status.py` = WORKING and `pane_read.py` shows a carried
+   transcript ("… +N lines"). Then re-arm the watch Monitor on the NEW session id and TaskStop
+   the old monitor (it's keyed to the dead sid).
+4. Startup deaths (clean worktree, no transcript) → plain respawn is fine; `--resume last` is
+   harmless either way. Repeated deaths (3+) → surface to the user; suspect a codex CLI
+   auto-update and consider pinning the previous version.

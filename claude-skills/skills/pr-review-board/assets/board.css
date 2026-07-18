@@ -1,0 +1,130 @@
+/* pr-review-board — clean dark board styles. */
+
+:root {
+  --bg: #0b0f14; --bg-inset: #07101d; --panel: #111823; --panel-2: #151d29;
+  --border: #1f2a38; --border-2: #2b3a4d; --fg: #dfe7f0; --fg-muted: #8b98a8;
+  --fg-dim: #5d6b7d; --accent: #4aa3ff; --accent-dim: #16324f;
+  --green: #2fb271; --red: #e5534b; --amber: #d9a441;
+  --add-bg: #113d23; --add-fg: #c7f5d8; --del-bg: #48181c; --del-fg: #f7bcbc;
+  --add-gutter: #164a2a; --del-gutter: #5a1f24;
+  --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 13.5px; line-height: 1.5 }
+a { color: var(--accent); text-decoration: none }
+a:hover { text-decoration: underline }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+/* ---- top bar ---- */
+#top { display: flex; align-items: baseline; gap: 16px; padding: 11px 20px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20 }
+#top .brand { font-weight: 600; font-size: 15px }
+#top .refs { font-family: var(--mono); font-size: 12px; color: var(--fg-muted) }
+
+/* ---- layout: theme rail + main ---- */
+.layout { display: grid; grid-template-columns: 260px 1fr; align-items: start }
+#outline { position: sticky; top: 47px; align-self: start; max-height: calc(100vh - 47px); overflow: auto; background: var(--panel); border-right: 1px solid var(--border); padding: 10px 0 }
+.grp-label { padding: 8px 18px 6px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-dim) }
+.theme-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 18px; background: none; border: 0; border-left: 2px solid transparent; color: var(--fg); cursor: pointer; font: inherit }
+.theme-item:hover { background: var(--panel-2) }
+.theme-item.sel { background: var(--panel-2); border-left-color: var(--accent) }
+.theme-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.theme-item .cc { font-size: 11px; color: var(--fg-dim); background: var(--bg-inset); border-radius: 10px; padding: 1px 8px }
+
+main { padding: 22px 26px; max-width: 1200px }
+main > .empty { color: var(--fg-dim); font-style: italic; padding: 40px }
+
+/* ---- theme ---- */
+.theme-card { margin-bottom: 34px }
+.theme-head { margin-bottom: 12px }
+.theme-head h2 { margin: 0; font-size: 19px }
+.theme-head .summary { color: var(--fg-muted); margin: 6px 0 0; max-width: 78ch }
+.impact { margin-top: 12px; border-left: 3px solid var(--green); background: #0e1a14; border-radius: 0 8px 8px 0; padding: 9px 14px; max-width: 78ch }
+.impact .lbl { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: var(--green); font-weight: 700; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+.impact .who-tag { font-family: var(--sans); font-size: 10px; letter-spacing: 0; text-transform: none; color: var(--fg-dim); border: 1px solid var(--border); border-radius: 4px; padding: 0 6px }
+.impact p { margin: 0; color: var(--fg) }
+
+/* ---- subsection (a commit) ---- */
+.subsection { border: 1px solid var(--border); border-radius: 9px; margin-top: 12px; overflow: hidden; background: var(--panel) }
+.sub-head { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 11px 14px; background: var(--panel-2); border: 0; color: var(--fg); cursor: pointer; font: inherit }
+.sub-head:hover { background: #1a2432 }
+.sub-head .caret { color: var(--fg-dim); width: 12px; flex: none }
+.sub-head .sub-title { flex: 1; font-weight: 500 }
+.sub-head .sub-count { font-family: var(--sans); font-size: 11px; color: var(--fg-muted); background: var(--bg-inset); border-radius: 10px; padding: 1px 9px }
+.sub-head .sc { font-family: var(--mono); font-size: 11px; color: var(--fg-dim) }
+.sub-head .sub-status { font-family: var(--mono); font-size: 11px; color: var(--fg-muted); min-width: 52px; text-align: right }
+.sub-head .sub-status.error { color: var(--red) }
+.files { padding: 10px 12px 14px }
+
+/* ---- per-file card: header on top of its own diff ---- */
+.filecard { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 8px; background: var(--bg) }
+.filecard:first-child { margin-top: 0 }
+.filebar { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 12px; background: var(--panel-2); border: 0; border-bottom: 1px solid var(--border); color: var(--fg); font-family: var(--mono); font-size: 12px; flex-wrap: wrap; cursor: pointer }
+.filebar[aria-expanded="false"] { border-bottom: 0 }
+.filebar:hover { background: #1a2432 }
+.filebar .fcaret { color: var(--fg-dim); width: 11px; flex: none }
+.filebar .fname { color: var(--fg); word-break: break-all }
+.filebar .stat-add { color: var(--green) }
+.filebar .stat-del { color: var(--red) }
+.filebar .fnote { font-family: var(--sans); font-size: 11px; color: var(--fg-dim); background: var(--bg-inset); border-radius: 4px; padding: 1px 8px }
+.filebar .vscode-link { margin-left: auto; font-family: var(--sans); font-size: 10.5px; border: 1px solid var(--border); border-radius: 4px; padding: 1px 8px; white-space: nowrap }
+.filebar .vscode-link:hover { border-color: var(--accent); background: var(--accent-dim); text-decoration: none }
+.filebar .no-link { font-family: var(--sans); font-size: 10.5px; color: var(--amber); margin-left: auto }
+.filecard .d2h { overflow-x: auto }
+
+/* ---- per-file description: a calm prose line under the header, always visible ---- */
+/* Keep the header's bottom hairline when a description follows, so bar → desc → diff
+   reads as one hairline each — not a doubled rule when the diff is expanded. */
+.filebar:has(+ .fdesc) { border-bottom: 1px solid var(--border) }
+.fdesc {
+  margin: 0;
+  padding: 8px 14px 9px 33px; /* indent aligns under the filename (past caret+gap) */
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 92ch;
+}
+
+/* ---- nested test cards: a test file's diff sits indented under the code it exercises ---- */
+.nest { margin: 6px 0 2px 20px; padding-left: 12px; border-left: 2px solid var(--border-2) }
+.nest .filecard { margin-top: 6px; background: var(--bg-inset) }
+.nest .filecard:first-child { margin-top: 0 }
+.filecard-test > .filebar { background: #10202e }
+.filecard-test > .filebar:hover { background: #16293a }
+.filebar .test-tag { font-family: var(--sans); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--accent); background: var(--accent-dim); border-radius: 4px; padding: 1px 7px; flex: none }
+
+/* ---- diff2html: full dark re-skin so nothing clashes with the page ---- */
+.d2h-file-header, .d2h-file-list-wrapper { display: none !important }
+.d2h-wrapper, .d2h-file-wrapper, .d2h-file-diff, .d2h-code-wrapper {
+  background: var(--bg) !important; border: 0 !important; margin: 0 !important; border-radius: 0 !important;
+}
+.d2h-diff-table { font-family: var(--mono); font-size: 12px; color: var(--fg); background: var(--bg) }
+/* line-number gutter */
+.d2h-code-linenumber, .d2h-code-side-linenumber {
+  background: var(--bg-inset) !important; color: var(--fg-dim) !important;
+  border-color: var(--border) !important; box-shadow: none !important;
+}
+.line-num1, .line-num2 { color: var(--fg-dim) }
+/* changed-line gutter tint (GitHub-style) */
+.d2h-code-linenumber.d2h-ins, td.d2h-ins.d2h-code-linenumber { background: var(--add-gutter) !important; color: var(--add-fg) !important }
+.d2h-code-linenumber.d2h-del, td.d2h-del.d2h-code-linenumber { background: var(--del-gutter) !important; color: var(--del-fg) !important }
+.line-num2 a { color: inherit; text-decoration: none }
+.line-num2 a:hover { color: var(--accent); text-decoration: underline }
+/* line backgrounds — calm dark greens/reds, context stays flat */
+.d2h-code-line, .d2h-code-side-line { font-family: var(--mono); font-size: 12px }
+tr .d2h-ins, td.d2h-ins, .d2h-ins { background: var(--add-bg) !important; border-color: #1c3a2b !important }
+tr .d2h-del, td.d2h-del, .d2h-del { background: var(--del-bg) !important; border-color: #3a1c1e !important }
+.d2h-cntx, td.d2h-cntx { background: var(--bg) !important }
+.d2h-info, td.d2h-info { background: var(--bg-inset) !important; color: var(--fg-dim) !important; border-color: var(--border) !important }
+.d2h-code-line-ctn { color: var(--fg) }
+.d2h-ins .d2h-code-line-ctn { color: var(--add-fg) }
+.d2h-del .d2h-code-line-ctn { color: var(--del-fg) }
+.d2h-code-line-prefix { color: var(--fg-dim) }
+/* word-level highlights — soft tint, no harsh boxes or underline/strikethrough */
+ins.d2h-change, .d2h-ins ins, .d2h-change ins { background: rgba(91, 224, 154, .22) !important; text-decoration: none !important; color: inherit !important }
+del.d2h-change, .d2h-del del, .d2h-change del { background: rgba(240, 138, 134, .22) !important; text-decoration: none !important; color: inherit !important }
+.d2h-emptyplaceholder, td.d2h-emptyplaceholder { background: var(--bg-inset) !important; border-color: var(--border) !important }
+.d2h-code-side-emptyplaceholder { background: var(--bg-inset) !important }

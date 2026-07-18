@@ -1,0 +1,3 @@
+# Dev-only test dependency (jsdom). The tool itself ships dependency-free.
+node_modules/
+package-lock.json

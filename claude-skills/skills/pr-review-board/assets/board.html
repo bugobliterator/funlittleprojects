@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pr-review-board</title>
+<link rel="stylesheet" href="/assets/diff2html.min.css">
+<link rel="stylesheet" href="/assets/board.css">
+</head>
+<body>
+  <header id="top">
+    <div class="brand">pr-review-board</div>
+    <div class="refs" id="refs">loading…</div>
+  </header>
+  <div class="layout">
+    <nav id="outline" aria-label="Theme outline"></nav>
+    <main id="mount"><div class="empty">loading manifest…</div></main>
+  </div>
+  <script src="/assets/diff2html.min.js"></script>
+  <script type="module">
+    import { init } from '/assets/board.js';
+    init();
+  </script>
+</body>
+</html>
